@@ -75,7 +75,7 @@ function NFT(props: { signer_address: string, friend_address: string }) {
   }
   
   const hundleMint = async () => {
-    safeMint(props.signer_address, "https://1.bp.blogspot.com/-drtIDNvYq80/YVwDI7wBDCI/AAAAAAABfdM/tRz-NyBz1C4DfXPQGkQ9uwBKdnHyFrBsQCNcBGAsYHQ/s400/internet_nft_art.png").then(() => {
+    safeMint(props.signer_address, "http://localhost:3000/nft.png").then(() => {
       setBalanceFunc()
       setTokenItemsFunc()
     }).catch((error: any) => {
