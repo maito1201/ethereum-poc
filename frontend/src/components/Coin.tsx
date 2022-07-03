@@ -64,21 +64,21 @@ function Coin(props: { signer_address: string, friend_address: string }) {
 
   return (
     <>
-    <div style={{margin: "40px"}}>
+    <div style={{margin: "10px 20px", borderRadius: "10px", boxShadow: "2px 2px 10px #bbb", padding: "20px"}}>
       <div>{coinName}</div>
       <div>user_address: {props.signer_address}{isOwner ? " (owner)" : ""}</div>
       <div>amount: {balance}{symbolName}</div>
-      <div>
-        <button onClick={() => { hundleTransfer() }}>transfer to friend</button>
-        <button onClick={() => { hundleApprove() }}>approve to transfer from friend</button>
-        <button onClick={() => { hundleTransferFromFriend() }}>transfer from friend</button>
-      </div>
       {isOwner ?
         <div>
           <button onClick={() => { hundleMint() }}>mint</button>
         </div> :
         null
       }
+      <div>
+        <button onClick={() => { hundleTransfer() }}>transfer to friend</button>
+        <button onClick={() => { hundleApprove() }}>approve to transfer from friend</button>
+        <button onClick={() => { hundleTransferFromFriend() }}>transfer from friend</button>
+      </div>
     </div>
     </>
   )
