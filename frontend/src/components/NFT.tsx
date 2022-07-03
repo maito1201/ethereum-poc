@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { ethers } from "ethers";
 import artifact from "../abi/MyNFT.json"
 
@@ -13,11 +13,13 @@ function NFT(props: { signer_address: string, friend_address: string }) {
   const contract = new ethers.Contract(nft_address, artifact.abi, provider);
   const client = contract.connect(signer);
 
+  const inputElement = useRef<HTMLInputElement>(null)
+
   const [balance, setBalance] = useState<string>("")
   const [isOwner, setIsOwner] = useState<boolean>(false)
   const [tokenName, setTokenName] = useState<string>("")
   const [tokenItems, setTokenItems] = useState<Array<TokenItem>>([])
-  const { balanceOf, safeMint, name, transferFrom, tokenURI } = client.functions;
+  const { name, tokenURI, balanceOf, safeMint, approve, transferFrom } = client.functions;
 
   useEffect(() => {
     const setTokenNameFunc = async () => {
@@ -83,18 +85,18 @@ function NFT(props: { signer_address: string, friend_address: string }) {
     })
   }
 
-  const hundleApprove = async() => {
-    // await approve(props.friend_address, 100)
+  const hundleApprove = async(tokenID: string) => {
+    await approve(props.friend_address, tokenID)
   }
 
-  const hundleTransferFromFriend = async () => {
-    /*
-    transferFrom(props.friend_address, props.signer_address, 100).then(() =>{
+  const hundleTransferToMe = async () => {
+    const id = inputElement?.current?.value
+    transferFrom(props.friend_address, props.signer_address, id).then(() => {
       setBalanceFunc()
+      setTokenItemsFunc()
     }).catch((error: any) => {
       alert(error)
     })
-    */
   }
 
   const hundleTransfer = async(id: string) => {
@@ -109,10 +111,11 @@ function NFT(props: { signer_address: string, friend_address: string }) {
   const tokenItem = (item: TokenItem) => {
     return(
       <div key={item.tokenID} style={{ margin: "10px 0" }}>
-        <div>id: {item.tokenID}</div>
         <img src={item.tokenURI} style={{width: "200px"}} />
+        <div>id: {item.tokenID}</div>
         <div>
           <button onClick={() => { hundleTransfer(item.tokenID) }}>transfer to friend</button>
+          <button onClick={() => { hundleApprove(item.tokenID) }}>approve to transfer from friend</button>
         </div>
       </div>
     )
@@ -123,6 +126,7 @@ function NFT(props: { signer_address: string, friend_address: string }) {
     <div style={{margin: "10px 20px", borderRadius: "10px", boxShadow: "2px 2px 10px #bbb", padding: "20px"}}>
       <div>{tokenName}</div>
       <div>user_address: {props.signer_address}{isOwner ? " (owner)" : ""}</div>
+      <div><input ref={inputElement} placeholder="input nft id" /><button onClick={() => { hundleTransferToMe() }}>transfer to me</button></div>
       {isOwner ?
         <div>
           <button onClick={() => { hundleMint() }}>mint</button>
