@@ -50,7 +50,7 @@ func initCoinClient(account string) *coin.Client {
 		Host:         host,
 		Port:         port,
 		ContractAddr: coinContractAddr,
-		SignerPkey:   account,
+		SignerPrvkey: account,
 	}
 	cl, err := coin.InitClient(config)
 	if err != nil {

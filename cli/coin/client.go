@@ -16,7 +16,7 @@ import (
 type Config struct {
 	Host         string
 	Port         string
-	SignerPkey   string
+	SignerPrvkey string
 	ContractAddr string
 }
 
@@ -37,7 +37,7 @@ func InitClient(config Config) (*Client, error) {
 		return nil, err
 	}
 
-	privateKey, err := crypto.HexToECDSA(config.SignerPkey)
+	privateKey, err := crypto.HexToECDSA(config.SignerPrvkey)
 	if err != nil {
 		return nil, err
 	}
