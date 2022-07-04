@@ -4,7 +4,7 @@ import artifact from "../abi/MyCoin.json"
 
 function Coin(props: { signer_address: string, friend_address: string }) {
   const provider = new ethers.providers.JsonRpcProvider();
-  const coin_address = "0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512"
+  const coin_address = "0x5FbDB2315678afecb367f032d93F642f64180aa3"
   const signer = provider.getSigner(props.signer_address);
   const contract = new ethers.Contract(coin_address, artifact.abi, provider);
   const client = contract.connect(signer);
