@@ -1,109 +1,92 @@
 package main
 
 import (
-	"context"
 	"crypto/ecdsa"
 	"fmt"
 	"math/big"
+	"os"
 
-	"github.com/ethereum/go-ethereum/accounts/abi/bind"
+	"github.com/charmbracelet/bubbles/list"
+	tea "github.com/charmbracelet/bubbletea"
+	"github.com/charmbracelet/lipgloss"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
-	"github.com/ethereum/go-ethereum/ethclient"
-
-	"github.com/maito1201/ethrium-poc/cli/poll"
+	"github.com/maito1201/ethrium-poc/cli/coin"
 )
 
-const addr = "0x5FbDB2315678afecb367f032d93F642f64180aa3"
-const url = "http://127.0.0.1:8545/"
+// Blockchain const
+const (
+	host             = "http://localhost"
+	port             = "8545"
+	coinContractAddr = "0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512"
+	user1PrvKey      = "ac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80"
+	user2PrvKey      = "59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6b78690d"
+)
 
-// private key of first user
-const pkey = "ac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80"
+var amount = big.NewInt(100)
 
-// 1 is agree, 2 is disagree
-var voteNum = big.NewInt(2)
+// app config
+const listHeight = 14
+const defaultWidth = 30
 
-var instance *poll.Poll
-var fromAddress common.Address
-var auth *bind.TransactOpts
+var (
+	titleStyle        = lipgloss.NewStyle().MarginLeft(2)
+	itemStyle         = lipgloss.NewStyle().PaddingLeft(4)
+	selectedItemStyle = lipgloss.NewStyle().PaddingLeft(2).Foreground(lipgloss.Color("170"))
+	paginationStyle   = list.DefaultStyles().PaginationStyle.PaddingLeft(4)
+	helpStyle         = list.DefaultStyles().HelpStyle.PaddingLeft(4).PaddingBottom(1)
+	quitTextStyle     = lipgloss.NewStyle().Margin(1, 0, 2, 4)
+)
 
-func init() {
-	client, err := ethclient.Dial(url)
+func main() {
+	if err := tea.NewProgram(newModel()).Start(); err != nil {
+		fmt.Println("Error running program:", err)
+		os.Exit(1)
+	}
+}
+
+func initCoinClient(account string) *coin.Client {
+	config := coin.Config{
+		Host:         host,
+		Port:         port,
+		ContractAddr: coinContractAddr,
+		SignerPkey:   account,
+	}
+	cl, err := coin.InitClient(config)
 	if err != nil {
 		panic(err)
 	}
+	return cl
+}
 
-	address := common.HexToAddress(addr)
-	instance, err = poll.NewPoll(address, client)
+func mintCoin(client *coin.Client) {
+	_, err := client.Instance.Mint(client.Auth, client.Auth.From, amount)
 	if err != nil {
 		panic(err)
 	}
+}
 
-	privateKey, err := crypto.HexToECDSA(pkey)
+func transferCoin(client *coin.Client) {
+	_, err := client.Instance.Transfer(client.Auth, toFriendAddress(string(client.Auth.From.Bytes())), amount)
+	if err != nil {
+		panic(err)
+	}
+}
+
+func toFriendAddress(account string) common.Address {
+	if account == user1PrvKey {
+		account = user2PrvKey
+	} else {
+		account = user1PrvKey
+	}
+	privateKey, err := crypto.HexToECDSA(account)
 	if err != nil {
 		panic(err)
 	}
 	publicKey := privateKey.Public()
 	publicKeyECDSA, ok := publicKey.(*ecdsa.PublicKey)
 	if !ok {
-		panic("error casting public key to ECDSA")
+		panic("casting public key to ECDSA error")
 	}
-	fromAddress = crypto.PubkeyToAddress(*publicKeyECDSA)
-
-	chainID, err := client.ChainID(context.Background())
-	if err != nil {
-		panic(err)
-	}
-
-	auth, err = bind.NewKeyedTransactorWithChainID(privateKey, chainID)
-	if err != nil {
-		panic(err)
-	}
-	auth.Value = big.NewInt(0)     // in wei
-	auth.GasLimit = uint64(300000) // in units
-
-	nonce, err := client.PendingNonceAt(context.Background(), fromAddress)
-	if err != nil {
-		panic(err)
-	}
-	auth.Nonce = big.NewInt(int64(nonce))
-
-	gasPrice, err := client.SuggestGasPrice(context.Background())
-	if err != nil {
-		panic(err)
-	}
-	auth.GasPrice = gasPrice
-}
-
-func main() {
-	// execute contract
-	title, err := instance.GetPoll(nil)
-	if err != nil {
-		panic(err)
-	}
-	fmt.Printf("Get Poll: %v\n", title)
-
-	// check vote result
-	opts := bind.CallOpts{From: fromAddress, Context: context.Background()}
-	v, err := instance.CheckPoll(&opts)
-	if err != nil {
-		panic(err)
-	}
-	fmt.Printf("Check Poll: %v\n", v)
-
-	// vote if result is 0
-	if v.Cmp(big.NewInt(0)) == 0 {
-		tx, err := instance.Vote(auth, voteNum)
-		if err != nil {
-			panic(err)
-		}
-		fmt.Printf("Vote %+v\n", tx)
-
-		// recheck vote result
-		v, err := instance.CheckPoll(&opts)
-		if err != nil {
-			panic(err)
-		}
-		fmt.Printf("Check Poll: %v\n", v)
-	}
+	return crypto.PubkeyToAddress(*publicKeyECDSA)
 }
