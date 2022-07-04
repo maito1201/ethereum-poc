@@ -14,7 +14,6 @@ async function main() {
   // await hre.run('compile');
 
   // We get the contract to deploy
-  await deploy("Poll");
   await deploy("MyCoin");
   await deploy("MyNFT");
 }
