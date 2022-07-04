@@ -1,21 +1,27 @@
 package main
 
 import (
+	"math/big"
+	"strconv"
+
 	"github.com/charmbracelet/bubbles/list"
 	tea "github.com/charmbracelet/bubbletea"
 
 	"github.com/maito1201/ethrium-poc/cli/coin"
+	"github.com/maito1201/ethrium-poc/cli/nft"
 )
 
 type model struct {
-	list       list.Model
-	items      []item
-	choice     string
-	quitting   bool
-	progress   int
-	account    string
-	execType   string
-	coinClient *coin.Client
+	list            list.Model
+	items           []item
+	choice          string
+	quitting        bool
+	progress        int
+	account         string
+	execType        string
+	transactionType string
+	coinClient      *coin.Client
+	nftClient       *nft.Client
 }
 
 func newModel() model {
@@ -23,16 +29,19 @@ func newModel() model {
 		item(user1PrvKey),
 		item(user2PrvKey),
 	}
+	l := newList("Select Account", items)
+	return model{list: *l}
+}
 
+func newList(title string, items []list.Item) *list.Model {
 	l := list.New(items, itemDelegate{}, defaultWidth, listHeight)
-	l.Title = "Select your Account"
+	l.Title = title
 	l.SetShowStatusBar(false)
 	l.SetFilteringEnabled(false)
 	l.Styles.Title = titleStyle
 	l.Styles.PaginationStyle = paginationStyle
 	l.Styles.HelpStyle = helpStyle
-
-	return model{list: l}
+	return &l
 }
 
 func (m model) Init() tea.Cmd {
@@ -61,7 +70,18 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				case 1:
 					m.execute1()
 				case 2:
-					m.executeCoinTransaction()
+					switch m.execType {
+					case "Coin":
+						m.executeCoinTransaction()
+						return m, tea.Quit
+					case "NFT":
+						m.executeNftTransaction()
+						if m.transactionType == "Mint" {
+							return m, tea.Quit
+						}
+					}
+				case 3:
+					m.executeTransferNft()
 					return m, tea.Quit
 				}
 			}
@@ -87,14 +107,8 @@ func (m *model) execute0() {
 		item("NFT"),
 		item("Coin"),
 	}
-	l := list.New(items, itemDelegate{}, defaultWidth, listHeight)
-	l.SetShowStatusBar(false)
-	l.SetFilteringEnabled(false)
-	l.Styles.Title = titleStyle
-	l.Styles.PaginationStyle = paginationStyle
-	l.Styles.HelpStyle = helpStyle
-	l.Title = "Select Token Type"
-	m.list = l
+	l := newList("Select Token Type", items)
+	m.list = *l
 }
 
 func (m *model) execute1() {
@@ -103,21 +117,18 @@ func (m *model) execute1() {
 	switch m.execType {
 	case "Coin":
 		m.coinClient = initCoinClient(m.account)
-		items := []list.Item{
-			item("Mint"),
-			item("Transfer"),
-		}
-		l := list.New(items, itemDelegate{}, defaultWidth, listHeight)
-		l.SetShowStatusBar(false)
-		l.SetFilteringEnabled(false)
-		l.Styles.Title = titleStyle
-		l.Styles.PaginationStyle = paginationStyle
-		l.Styles.HelpStyle = helpStyle
-		l.Title = "Select Function"
-		m.list = l
 	case "NFT":
-		panic("not implemented")
+		m.nftClient = initNftClient(m.account)
+	default:
+		panic("not implemented error")
 	}
+	items := []list.Item{
+		item("Mint"),
+		item("TransferToFriend"),
+		item("TransferToMe"),
+	}
+	l := newList("Select Function", items)
+	m.list = *l
 }
 
 func (m *model) executeCoinTransaction() {
@@ -125,7 +136,50 @@ func (m *model) executeCoinTransaction() {
 	switch m.choice {
 	case "Mint":
 		mintCoin(m.coinClient)
-	case "Transfer":
-		transferCoin(m.coinClient)
+	case "TransferToFrined":
+		transferCoinToFrined(m.coinClient)
+	case "TransferToMe":
+		transferCoinToMe(m.coinClient)
+	default:
+		panic("not implemented error")
+	}
+}
+
+func (m *model) executeNftTransaction() {
+	m.progress = m.progress + 1
+	m.transactionType = m.choice
+	switch m.choice {
+	case "Mint":
+		mintNft(m.nftClient)
+	case "TransferToFriend", "TransferToMe":
+		items := []list.Item{
+			item("0"),
+			item("1"),
+			item("2"),
+			item("3"),
+			item("4"),
+			item("5"),
+		}
+		l := newList("Select TokenID", items)
+		m.list = *l
+	default:
+		panic("not implemented error")
+	}
+}
+
+func (m *model) executeTransferNft() {
+	m.progress = m.progress + 1
+	id, err := strconv.Atoi(m.choice)
+	if err != nil {
+		panic(err)
+	}
+	tokenID := big.NewInt(int64(id))
+	switch m.transactionType {
+	case "TransferToFriend":
+		transferNftToFrined(m.nftClient, tokenID)
+	case "TransferToMe":
+		transferNftToMe(m.nftClient, tokenID)
+	default:
+		panic("not implemented error")
 	}
 }
