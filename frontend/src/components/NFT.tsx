@@ -1,11 +1,19 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { ethers } from "ethers";
 import artifact from "../abi/MyNFT.json"
+import axios from "axios"
 
 function NFT(props: { signer_address: string, friend_address: string }) {
   type TokenItem = {
     tokenID: string
     tokenURI: string
+    tokenInfo: TokenInfo
+  }
+  type TokenInfo = {
+    name: string
+    description: string
+    image: string
+    attributes: string
   }
   const provider = new ethers.providers.JsonRpcProvider();
   const nft_address = "0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512"
@@ -67,9 +75,12 @@ function NFT(props: { signer_address: string, friend_address: string }) {
 
     for (const id of owned) {
       const uri = (await tokenURI(id)).toString()
+      const token_info = await axios.get(uri)
+      console.log(token_info)
       const item: TokenItem = {
         tokenID: id,
-        tokenURI: uri
+        tokenURI: uri,
+        tokenInfo: token_info.data as unknown as TokenInfo,
       }
       items.push(item)
     }
@@ -77,7 +88,7 @@ function NFT(props: { signer_address: string, friend_address: string }) {
   }
   
   const hundleMint = async () => {
-    safeMint(props.signer_address, "http://localhost:3000/nft.png").then(() => {
+    safeMint(props.signer_address, "http://localhost:3000/nft.json").then(() => {
       setBalanceFunc()
       setTokenItemsFunc()
     }).catch((error: any) => {
@@ -111,8 +122,10 @@ function NFT(props: { signer_address: string, friend_address: string }) {
   const tokenItem = (item: TokenItem) => {
     return(
       <div key={item.tokenID} style={{ margin: "10px 0" }}>
-        <img src={item.tokenURI} style={{width: "200px"}} />
+        <img src={item.tokenInfo.image} style={{width: "200px"}} />
         <div>id: {item.tokenID}</div>
+        <div>name: {item.tokenInfo.name}</div>
+        <div>description: {item.tokenInfo.description}</div>
         <div>
           <button onClick={() => { hundleTransfer(item.tokenID) }}>transfer to friend</button>
           <button onClick={() => { hundleApprove(item.tokenID) }}>approve to transfer from friend</button>

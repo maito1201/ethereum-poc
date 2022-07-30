@@ -1,0 +1,6 @@
+{
+   "name":"Sample NFT",
+   "description":"This is a sample token.",
+   "image":"http://localhost:3000/nft.png",
+   "attributes":[]
+}

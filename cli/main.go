@@ -22,7 +22,7 @@ const (
 	user1PrvKey      = "ac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80"
 	user2PrvKey      = "59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6b78690d"
 	user1PubKey      = "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266"
-	nftURI           = "http://localhost:3000/nft.png"
+	nftURI           = "http://localhost:3000/nft.json"
 )
 
 var amount = big.NewInt(100)
